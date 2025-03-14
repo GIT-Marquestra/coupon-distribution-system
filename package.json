@@ -9,11 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^6.5.0",
     "@vercel/kv": "^3.0.0",
     "axios": "^1.8.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.479.0",
     "next": "15.2.2",
+    "prisma": "^6.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.0.2",

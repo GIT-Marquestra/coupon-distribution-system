@@ -1,16 +1,11 @@
+// app/api/claim-coupon/route.ts
+import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
 import { v4 as uuidv4 } from 'uuid';
 
-// Configuration
-const COOLDOWN_PERIOD = 3600; // 1 hour in seconds
-const COUPON_CODES = [
-  'SAVE20TODAY', 'FREESHIP2025', 'SPRING25OFF', 
-  'WELCOME10NOW', 'FLASH30DEAL', 'EXCLUSIVE15', 
-  'SPECIAL40OFF', 'NEWCUST25', 'LOYALTY20',
-  'DISCOUNT50NOW'
-];
+// Get cooldown period from environment or default to 1 hour
+const COOLDOWN_PERIOD = parseInt(process.env.COOLDOWN_PERIOD || '3600', 10);
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,12 +21,29 @@ export async function POST(request: NextRequest) {
       // In a real implementation, we'd set the cookie properly here
     }
     
-    // Check if user is on cooldown
-    const userCooldownKey = `cooldown:${ip}:${userId}`;
-    const userCooldown = await kv.get(userCooldownKey);
+    // Find or create user record
+    let user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
     
-    if (userCooldown) {
-      const remainingTime = COOLDOWN_PERIOD - (Math.floor(Date.now() / 1000) - Number(userCooldown));
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          id: userId,
+          ipAddress: ip
+        }
+      });
+    }
+    
+    // Check if user is on cooldown
+    const latestClaim = await prisma.claim.findFirst({
+      where: { userId },
+      orderBy: { claimedAt: 'desc' }
+    });
+    
+    if (latestClaim) {
+      const elapsedSeconds = Math.floor((Date.now() - latestClaim.claimedAt.getTime()) / 1000);
+      const remainingTime = COOLDOWN_PERIOD - elapsedSeconds;
       
       if (remainingTime > 0) {
         return NextResponse.json({
@@ -43,29 +55,63 @@ export async function POST(request: NextRequest) {
     }
     
     // Get the next coupon in round-robin fashion
-    const currentIndexKey = 'coupon:currentIndex';
-    const currentIndex = await kv.get(currentIndexKey) as number || 0;
+    const couponIndexRecord = await prisma.couponIndex.findUnique({
+      where: { id: 1 }
+    });
     
-    const couponCode = COUPON_CODES[currentIndex % COUPON_CODES.length];
+    if (!couponIndexRecord) {
+      return NextResponse.json({
+        success: false,
+        message: 'System error: Coupon index not found'
+      }, { status: 500 });
+    }
     
-    // Update the index for next claim
-    await kv.set(currentIndexKey, (currentIndex + 1) % COUPON_CODES.length);
+    // Count available coupons
+    const couponCount = await prisma.coupon.count();
+    
+    if (couponCount === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'No coupons available'
+      }, { status: 404 });
+    }
+    
+    // Get the current coupon
+    const currentIndex = couponIndexRecord.currentIndex % couponCount;
+    
+    const coupons = await prisma.coupon.findMany({
+      skip: currentIndex,
+      take: 1,
+      orderBy: { id: 'asc' }
+    });
+    
+    if (!coupons || coupons.length === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'No coupon available'
+      }, { status: 404 });
+    }
+    
+    const coupon = coupons[0];
+    
+    // Update the coupon index
+    await prisma.couponIndex.update({
+      where: { id: 1 },
+      data: { currentIndex: (currentIndex + 1) % couponCount }
+    });
     
     // Record this claim
-    const now = Math.floor(Date.now() / 1000);
-    await kv.set(userCooldownKey, now);
-    
-    // Add to user's claim history
-    const userClaimsKey = `claims:${ip}:${userId}`;
-    await kv.rpush(userClaimsKey, couponCode);
-    
-    // Set TTL on the claims list to expire after reasonable time (e.g., 7 days)
-    await kv.expire(userClaimsKey, 7 * 24 * 60 * 60);
+    await prisma.claim.create({
+      data: {
+        userId: user.id,
+        couponId: coupon.id
+      }
+    });
     
     // Respond with the coupon code
     return NextResponse.json({
       success: true,
-      couponCode,
+      couponCode: coupon.code,
       cooldownPeriod: COOLDOWN_PERIOD
     });
     

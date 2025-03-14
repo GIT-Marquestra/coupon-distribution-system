@@ -1,0 +1,48 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Keep track of the current coupon index for round-robin distribution
+model CouponIndex {
+  id          Int      @id @default(1)
+  currentIndex Int     @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+// Store coupon codes
+model Coupon {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique
+  claims    Claim[]
+  createdAt DateTime  @default(now())
+}
+
+// Track user claims and cooldowns
+model User {
+  id        String   @id @default(uuid())
+  ipAddress String
+  claims    Claim[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ipAddress])
+}
+
+// Track each claim
+model Claim {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  couponId  Int
+  coupon    Coupon   @relation(fields: [couponId], references: [id])
+  claimedAt DateTime @default(now())
+
+  @@index([userId, claimedAt])
+  @@index([couponId])
+}

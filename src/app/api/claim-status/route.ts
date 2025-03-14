@@ -1,10 +1,10 @@
-// File: app/api/claim-status/route.ts (continued)
+// app/api/claim-status/route.ts
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import prisma from '@/lib/prisma';
 
-// Configuration
-const COOLDOWN_PERIOD = 3600; // 1 hour in seconds
+// Get cooldown period from environment or default to 1 hour
+const COOLDOWN_PERIOD = parseInt(process.env.COOLDOWN_PERIOD || '3600', 10);
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,28 +22,49 @@ export async function GET(request: NextRequest) {
       });
     }
     
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+    
+    if (!user) {
+      return NextResponse.json({
+        timeRemaining: null,
+        recentClaims: []
+      });
+    }
+    
     // Check if user is on cooldown
-    const userCooldownKey = `cooldown:${ip}:${userId}`;
-    const userCooldown = await kv.get(userCooldownKey) as number;
+    const latestClaim = await prisma.claim.findFirst({
+      where: { userId },
+      orderBy: { claimedAt: 'desc' }
+    });
     
     let timeRemaining = null;
-    if (userCooldown) {
-      timeRemaining = COOLDOWN_PERIOD - (Math.floor(Date.now() / 1000) - userCooldown);
+    
+    if (latestClaim) {
+      const elapsedSeconds = Math.floor((Date.now() - latestClaim.claimedAt.getTime()) / 1000);
+      timeRemaining = COOLDOWN_PERIOD - elapsedSeconds;
       
-      // If the cooldown has expired, clear it
+      // If the cooldown has expired, set to null
       if (timeRemaining <= 0) {
-        await kv.del(userCooldownKey);
         timeRemaining = null;
       }
     }
     
-    // Get user's claim history
-    const userClaimsKey = `claims:${ip}:${userId}`;
-    const recentClaims = await kv.lrange(userClaimsKey, 0, 9); // Get up to 10 most recent claims
+    // Get user's claim history with coupon codes
+    const claims = await prisma.claim.findMany({
+      where: { userId },
+      orderBy: { claimedAt: 'desc' },
+      take: 10,
+      include: { coupon: true }
+    });
+    
+    const recentClaims = claims.map(claim => claim.coupon.code);
     
     return NextResponse.json({
       timeRemaining,
-      recentClaims: recentClaims || []
+      recentClaims
     });
     
   } catch (error) {
