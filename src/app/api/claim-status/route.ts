@@ -1,20 +1,21 @@
-// app/api/claim-status/route.ts
-import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
-// Get cooldown period from environment or default to 1 hour
-const COOLDOWN_PERIOD = parseInt(process.env.COOLDOWN_PERIOD || '3600', 10);
-
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     // Get user IP address
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
+
+    const COOLDOWN_PERIOD = parseInt(process.env.COOLDOWN_PERIOD || '3600', 10);
     
-    // Get user identifier from cookies or return anonymous state
+    // Get user identifier from cookies
     const cookieStore = await cookies();
-    const userId = cookieStore.get('user_id')?.value;
+    let userId = cookieStore.get('user_id')?.value;
     
+    // If no userId in cookies, we can either:
+    // 1. Return empty result (current behavior)
+    // 2. Create a new user (similar to claim-coupon endpoint)
     if (!userId) {
       return NextResponse.json({
         timeRemaining: null,
@@ -23,17 +24,21 @@ export async function GET(request: NextRequest) {
     }
     
     // Check if user exists
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: userId }
     });
     
+    // If user ID from cookie doesn't exist in database, create it
     if (!user) {
-      return NextResponse.json({
-        timeRemaining: null,
-        recentClaims: []
+      user = await prisma.user.create({
+        data: {
+          id: userId,
+          ipAddress: ip
+        }
       });
     }
     
+    // Rest of your code stays the same...
     // Check if user is on cooldown
     const latestClaim = await prisma.claim.findFirst({
       where: { userId },
@@ -66,7 +71,6 @@ export async function GET(request: NextRequest) {
       timeRemaining,
       recentClaims
     });
-    
   } catch (error) {
     console.error('Error checking claim status:', error);
     return NextResponse.json({
