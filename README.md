@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coupon Distribution System
 
-## Getting Started
+## Overview
+This is a live web application for distributing coupons to guest users in a round-robin manner, with mechanisms to prevent abuse through repeated claims via page refreshes. The system ensures fair distribution while enforcing cooldown periods.
 
-First, run the development server:
+## Features
+- **Round-Robin Coupon Assignment**: Ensures even distribution of coupons.
+- **Guest Access**: Users can claim coupons without requiring login or account creation.
+- **Abuse Prevention**:
+  - IP Tracking: Restricts multiple claims from the same IP within a specified cooldown period.
+  - Cookie Tracking: Prevents repeated claims from the same browser session.
+- **User Feedback**: Provides real-time messages on successful claims or cooldown status.
+- **Deployment**: Accessible via a public URL.
 
+## Tech Stack
+- **Next.js** for frontend and backend routes.
+- **Prisma ORM** for database management.
+- **PostgreSQL** as the database.
+- **UUID & Cookies API** for user tracking.
+- **Vercel** for deployment.
+
+## API Endpoints
+### `POST /api/claim`
+**Description**: Allows a guest user to claim a coupon.
+
+#### Request Headers:
+- `x-forwarded-for`: User's IP address (used for abuse prevention).
+
+#### Response:
+- **200 OK**: Coupon successfully claimed.
+- **202 Accepted**: User must wait before claiming another coupon.
+- **203 No Content**: No coupons available.
+- **208 Already Reported**: Duplicate IP detected.
+- **500 Internal Server Error**: System failure.
+
+## Installation & Setup
+### Prerequisites
+- Node.js
+- PostgreSQL
+
+### Steps
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-repo/coupon-distribution.git
+   cd coupon-distribution
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up the database:
+   ```bash
+   npx prisma migrate dev
+   ```
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Abuse Prevention Mechanism
+1. **IP Tracking**: Restricts multiple claims from the same IP for `COOLDOWN_PERIOD`.
+2. **Cookie-based User Identification**: Prevents multiple claims from the same browser session.
+3. **Round-Robin Allocation**: Distributes coupons sequentially.
+
+## Deployment
+To deploy on Vercel:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+vercel
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Live URL
+[\[Your Deployed Link Here\]](https://coupon-distribution-system-alpha.vercel.app/)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Author
+Abhishek Verma
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
