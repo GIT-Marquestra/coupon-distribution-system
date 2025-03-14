@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     
     // Get user identifier from cookies
     const cookieStore = await cookies();
-    let userId = cookieStore.get('user_id')?.value;
+    const userId = cookieStore.get('user_id')?.value;
     
     // If no userId in cookies, we can either:
     // 1. Return empty result (current behavior)
