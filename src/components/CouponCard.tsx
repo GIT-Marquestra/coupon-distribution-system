@@ -1,4 +1,3 @@
-// File: components/CouponCard.tsx
 'use client';
 
 import { useState } from 'react';

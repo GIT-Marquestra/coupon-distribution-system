@@ -33,7 +33,7 @@ export default function CouponForm() {
       
       if (data.success) {
         toast.success(`Coupon "${data.coupon?.code}" was created successfully!`);
-        setCode(''); // Reset form after successful submission
+        setCode(''); 
       } else {
         toast.error(data.message || "Failed to create coupon");
       }

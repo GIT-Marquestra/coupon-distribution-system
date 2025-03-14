@@ -1,4 +1,3 @@
-// File: components/CouponClaimStatus.tsx
 'use client';
 
 import { useEffect, useState } from 'react';

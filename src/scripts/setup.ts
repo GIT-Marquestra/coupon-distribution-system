@@ -1,5 +1,3 @@
-// scripts/setup.ts
-
 import prisma from "@/lib/prisma";
 
 
@@ -11,14 +9,13 @@ const COUPON_CODES = [
 ];
 
 async function main() {
-  // Create coupon index record if it doesn't exist
   await prisma.couponIndex.upsert({
     where: { id: 1 },
     update: {},
     create: { id: 1, currentIndex: 0 }
   });
 
-  // Create coupons if they don't exist
+
   for (const code of COUPON_CODES) {
     await prisma.coupon.upsert({
       where: { code },
@@ -27,7 +24,6 @@ async function main() {
     });
   }
 
-  console.log('Initial data setup complete!');
 }
 
 main()

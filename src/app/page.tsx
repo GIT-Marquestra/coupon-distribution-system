@@ -17,11 +17,11 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [showCouponForm, setShowCouponForm] = useState(false);
   
-  // Correct password
-  const ADMIN_PASSWORD = 'admin1234';
+
+  const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
 
   useEffect(() => {
-    // Check if user has any time restrictions
+
     const checkClaimStatus = async () => {
       try {
         const response = await axios.get('/api/claim-status');
@@ -30,7 +30,7 @@ export default function Home() {
         if (data.timeRemaining) {
           setTimeRemaining(data.timeRemaining);
           
-          // Set interval to update remaining time
+
           const interval = setInterval(() => {
             setTimeRemaining(prevTime => {
               if (prevTime === null || prevTime <= 1) {
@@ -56,10 +56,10 @@ export default function Home() {
     checkClaimStatus();
   }, []);
 
-  // Function to normalize UI after timeout
+
   const normalizeAfterTimeout = () => {
     setError(null);
-    // Clear any error states that should be reset after cooldown
+
     toast.success('You can claim a new coupon now!');
   };
 
@@ -82,7 +82,7 @@ export default function Home() {
         setTimeRemaining(data.cooldownPeriod);
         setRecentClaims([...(recentClaims || []), data.couponCode]);
         
-        // Set interval to update remaining time
+
         const interval = setInterval(() => {
           setTimeRemaining(prevTime => {
             if (prevTime === null || prevTime <= 1) {
@@ -144,7 +144,7 @@ export default function Home() {
             Claim your limited-time discount coupon below and save on your next purchase!
           </p>
           
-          {/* Button to open coupon form */}
+
           {!showCouponForm && (
             <button 
               onClick={openPasswordModal}
@@ -155,7 +155,7 @@ export default function Home() {
           )}
         </div>
         
-        {/* Password Modal */}
+
         {showPasswordModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full">

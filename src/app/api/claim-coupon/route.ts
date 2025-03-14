@@ -1,33 +1,33 @@
-// app/api/claim-coupon/route.ts
+
 
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
-// Get cooldown period from environment or default to 1 hour
+
 const COOLDOWN_PERIOD = parseInt(process.env.COOLDOWN_PERIOD || '3600', 10);
 
 export async function POST(request: NextRequest) {
   try {
-    // Get user IP address
+
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     
-    // Get user identifier from cookies or create a new one
+
     const cookieStore = await cookies();
     let userId = cookieStore.get('user_id')?.value;
     
     if (!userId) {
       userId = uuidv4();
-      // In a real implementation, we'd set the cookie properly here
+
     }
     
-    // Find or create user record
+
     let user = await prisma.user.findFirst({
       where: { ipAddress: ip }
     });
 
-    console.log(user)
+
     
     if (!user) {
       try{
@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Check if user is on cooldown by looking at their most recent claim
-    // Add this check before the IP-based check:
 
-// Check if the current user is on cooldown
+
+
+
 const latestUserClaim = await prisma.claim.findFirst({
   where: { userId: user.id },
   orderBy: { claimedAt: 'desc' }
@@ -75,7 +75,7 @@ if (latestUserClaim) {
     });
 
     if (!couponIndexRecord) {
-      // Create the coupon index record if it doesn't exist
+
       try {
         couponIndexRecord = await prisma.couponIndex.create({
           data: {
@@ -85,7 +85,7 @@ if (latestUserClaim) {
         });
       } catch (error) {
         console.error('Error creating coupon index:', error);
-        // True server error - use 500
+
         return NextResponse.json({
           success: false,
           statusCode: 500,
@@ -94,7 +94,7 @@ if (latestUserClaim) {
       }
     }
     
-    // Count available coupons
+
     const couponCount = await prisma.coupon.count();
     
     if (couponCount === 0) {
@@ -102,10 +102,10 @@ if (latestUserClaim) {
         success: false,
         statusCode: 404,
         message: 'No coupons available'
-      }, { status: 203 }); // Using 203 (Non-Authoritative Information)
+      }, { status: 203 });
     }
     
-    // Get the current coupon
+
     const currentIndex = couponIndexRecord.currentIndex % couponCount;
     
     const coupons = await prisma.coupon.findMany({
@@ -119,18 +119,18 @@ if (latestUserClaim) {
         success: false,
         statusCode: 404,
         message: 'No coupon available'
-      }, { status: 203 }); // Using 203 (Non-Authoritative Information)
+      }, { status: 203 }); 
     }
     
     const coupon = coupons[0];
     
-    // Update the coupon index
+
     await prisma.couponIndex.update({
       where: { id: 1 },
       data: { currentIndex: (currentIndex + 1) % couponCount }
     });
     
-    // Record this claim
+
     await prisma.claim.create({
       data: {
         userId: user.id,
@@ -138,7 +138,7 @@ if (latestUserClaim) {
       }
     });
     
-    // Respond with the coupon code - success with 201 Created
+
     return NextResponse.json({
       success: true,
       statusCode: 200,
@@ -149,7 +149,7 @@ if (latestUserClaim) {
     
   } catch (error) {
     console.error('Error claiming coupon:', error);
-    // True server error - use 500
+
     return NextResponse.json({
       success: false,
       statusCode: 500,
@@ -158,7 +158,7 @@ if (latestUserClaim) {
   }
 }
 
-// Helper function to format remaining time in a human-readable format
+
 function formatRemainingTime(seconds: number): string {
   if (seconds < 60) {
     return `${seconds} second${seconds !== 1 ? 's' : ''}`;
