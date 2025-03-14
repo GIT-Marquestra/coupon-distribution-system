@@ -24,8 +24,12 @@ export default function CouponForm() {
     
     try {
       const response = await axios.post('/api/coupons', { code });
+
+      console.log(response)
       
       const { data } = response;
+
+      console.log(data)
       
       if (data.success) {
         toast.success(`Coupon "${data.coupon?.code}" was created successfully!`);
