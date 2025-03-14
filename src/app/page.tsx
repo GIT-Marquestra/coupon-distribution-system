@@ -1,4 +1,3 @@
-// File: app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,6 +13,12 @@ export default function Home() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [recentClaims, setRecentClaims] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  
+  // Correct password
+  const ADMIN_PASSWORD = 'admin1234';
 
   useEffect(() => {
     // Check if user has any time restrictions
@@ -30,6 +35,7 @@ export default function Home() {
             setTimeRemaining(prevTime => {
               if (prevTime === null || prevTime <= 1) {
                 clearInterval(interval);
+                normalizeAfterTimeout();
                 return null;
               }
               return prevTime - 1;
@@ -49,6 +55,13 @@ export default function Home() {
     
     checkClaimStatus();
   }, []);
+
+  // Function to normalize UI after timeout
+  const normalizeAfterTimeout = () => {
+    setError(null);
+    // Clear any error states that should be reset after cooldown
+    toast.success('You can claim a new coupon now!');
+  };
 
   const claimCoupon = async () => {
     if (timeRemaining !== null) {
@@ -74,6 +87,7 @@ export default function Home() {
           setTimeRemaining(prevTime => {
             if (prevTime === null || prevTime <= 1) {
               clearInterval(interval);
+              normalizeAfterTimeout();
               return null;
             }
             return prevTime - 1;
@@ -103,16 +117,77 @@ export default function Home() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      setShowCouponForm(true);
+      setShowPasswordModal(false);
+      toast.success('Access granted!');
+    } else {
+      toast.error('Incorrect password');
+    }
+  };
+
+  const openPasswordModal = () => {
+    setShowPasswordModal(true);
+    setPassword('');
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center p-6 md:p-24">
-      <CouponForm/>
+      {showCouponForm && <CouponForm />}
+      
       <div className="max-w-3xl w-full">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-indigo-800 mb-4">Exclusive Coupon Offers</h1>
           <p className="text-lg text-gray-600">
             Claim your limited-time discount coupon below and save on your next purchase!
           </p>
+          
+          {/* Button to open coupon form */}
+          {!showCouponForm && (
+            <button 
+              onClick={openPasswordModal}
+              className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Open Coupon Form
+            </button>
+          )}
         </div>
+        
+        {/* Password Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full">
+              <h3 className="text-2xl font-semibold mb-4">Enter Password</h3>
+              <form onSubmit={handlePasswordSubmit}>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                />
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordModal(false)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
         
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <div className="text-center mb-6">
