@@ -1,7 +1,6 @@
 // scripts/setup.ts
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 const COUPON_CODES = [
   'SAVE20TODAY', 'FREESHIP2025', 'SPRING25OFF', 
