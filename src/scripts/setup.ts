@@ -1,6 +1,7 @@
 // scripts/setup.ts
 
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
+
 
 const COUPON_CODES = [
   'SAVE20TODAY', 'FREESHIP2025', 'SPRING25OFF', 
