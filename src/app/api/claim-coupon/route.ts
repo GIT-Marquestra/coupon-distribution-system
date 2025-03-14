@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     
     // Get the next coupon in round-robin fashion
     const currentIndexKey = 'coupon:currentIndex';
-    let currentIndex = await kv.get(currentIndexKey) as number || 0;
+    const currentIndex = await kv.get(currentIndexKey) as number || 0;
     
     const couponCode = COUPON_CODES[currentIndex % COUPON_CODES.length];
     
