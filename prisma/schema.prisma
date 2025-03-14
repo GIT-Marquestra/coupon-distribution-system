@@ -26,7 +26,7 @@ model Coupon {
 // Track user claims and cooldowns
 model User {
   id        String   @id @default(uuid())
-  ipAddress String
+  ipAddress String   @unique
   claims    Claim[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

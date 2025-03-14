@@ -6,6 +6,7 @@ import { CouponCard } from '@/components/CouponCard';
 import { CouponClaimStatus } from '@/components/CouponClaimStatus';
 import axios from 'axios';
 import CouponForm from '@/components/Input';
+import toast from 'react-hot-toast';
 
 export default function Home() {
   const [couponCode, setCouponCode] = useState<string | null>(null);
@@ -80,6 +81,8 @@ export default function Home() {
         }, 1000);
       } else {
         setError(data.message || "Something went wrong");
+
+        toast.error(data.message || "Something went wrong");
         
         if (data.timeRemaining) {
           setTimeRemaining(data.timeRemaining);
@@ -87,6 +90,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error claiming coupon:', error);
+      toast.error('Some error occurred');
       setError("Please try again later");
     } finally {
       setLoading(false);
