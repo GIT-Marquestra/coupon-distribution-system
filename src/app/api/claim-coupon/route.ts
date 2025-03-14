@@ -54,17 +54,29 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Get the next coupon in round-robin fashion
-    const couponIndexRecord = await prisma.couponIndex.findUnique({
-      where: { id: 1 }
-    });
     
-    if (!couponIndexRecord) {
-      return NextResponse.json({
-        success: false,
-        message: 'System error: Coupon index not found'
-      }, { status: 500 });
-    }
+    // Get the next coupon in round-robin fashion
+let couponIndexRecord = await prisma.couponIndex.findUnique({
+  where: { id: 1 }
+});
+
+if (!couponIndexRecord) {
+  // Create the coupon index record if it doesn't exist
+  try {
+    couponIndexRecord = await prisma.couponIndex.create({
+      data: {
+        id: 1,
+        currentIndex: 0
+      }
+    });
+  } catch (error) {
+    console.error('Error creating coupon index:', error);
+    return NextResponse.json({
+      success: false,
+      message: 'System error: Failed to initialize coupon index'
+    }, { status: 500 });
+  }
+}
     
     // Count available coupons
     const couponCount = await prisma.coupon.count();
